@@ -25,8 +25,13 @@ pipeline {
             steps {
                 bat '''
                     if exist project rmdir /s /q project
+
                     git clone --branch main "%GIT_REPO%" project
                     if errorlevel 1 exit /b 1
+
+                    if not exist project\\index.html exit /b 1
+                    if not exist project\\Dockerfile exit /b 1
+                    if not exist project\\deployment.yaml exit /b 1
                 '''
             }
         }
@@ -48,6 +53,7 @@ pipeline {
                         bat '''
                             if not exist project\\Dockerfile exit /b 1
                             if not exist project\\deployment.yaml exit /b 1
+
                             findstr /I /C:"FROM nginx" project\\Dockerfile
                             if errorlevel 1 exit /b 1
                         '''
@@ -124,17 +130,29 @@ pipeline {
                     bat '''
                         set "KUBECONFIG=%KUBECONFIG_FILE%"
 
-                        kubectl apply -f project/deployment.yaml
-                        if errorlevel 1 exit /b 1
-
-                        kubectl set image deployment/%APP_NAME% %CONTAINER_NAME%=%DOCKER_IMAGE%:%BUILD_NUMBER%
+                        REM Verify the current stable deployment
+                        kubectl get deployment %APP_NAME%
                         if errorlevel 1 exit /b 1
 
                         kubectl rollout status deployment/%APP_NAME% --timeout=180s
+                        if errorlevel 1 exit /b 1
+
+                        echo CURRENT STABLE IMAGE:
+                        kubectl get deployment/%APP_NAME% -o jsonpath="{.spec.template.spec.containers[0].image}"
+                        if errorlevel 1 exit /b 1
+
+                        REM Introduce a deliberately faulty release
+                        kubectl set image deployment/%APP_NAME% %CONTAINER_NAME%=%DOCKER_IMAGE%:invalid-rollback-demo
+                        if errorlevel 1 exit /b 1
+
+                        echo Testing deliberately faulty release...
+
+                        REM Wait for Kubernetes to report rollout failure
+                        kubectl rollout status deployment/%APP_NAME% --timeout=60s
 
                         if errorlevel 1 (
-                            echo FAILED ROLLOUT DETECTED
-                            echo Attempting automatic rollback...
+                            echo FAULTY RELEASE DETECTED
+                            echo Starting automatic rollback...
 
                             kubectl rollout undo deployment/%APP_NAME%
                             if errorlevel 1 exit /b 1
@@ -143,12 +161,17 @@ pipeline {
                             if errorlevel 1 exit /b 1
 
                             echo AUTOMATIC ROLLBACK SUCCESSFUL
+
+                            kubectl get deployment %APP_NAME%
+                            kubectl get pods -l app=%APP_NAME%
+                            kubectl get service %SERVICE_NAME%
+
+                            REM Mark the faulty release as rejected
                             exit /b 1
                         )
 
-                        kubectl get deployment %APP_NAME%
-                        kubectl get pods -l app=%APP_NAME%
-                        kubectl get service %SERVICE_NAME%
+                        echo ERROR: Faulty image unexpectedly deployed
+                        exit /b 1
                     '''
                 }
             }
@@ -161,7 +184,8 @@ pipeline {
         }
 
         failure {
-            echo 'Pipeline failed. Inspect the failed stage.'
+            echo 'Pipeline failed or faulty release rejected.'
+            echo 'Check the rollback messages in Console Output.'
         }
 
         always {
