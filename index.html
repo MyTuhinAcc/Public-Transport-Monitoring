@@ -25,6 +25,13 @@ input {padding:12px;width:95%;margin-bottom:15px}
 <main>
 <section>
 <h2>Bus Route Information</h2>
+<label for="routeSearch">Search Bus Route:</label>
+<input
+    type="text"
+    id="routeSearch"
+    placeholder="Enter route number (e.g. 102)"
+    oninput="filterRoutes()"
+>
 <table id="busTable">
 <thead>
 <tr>
@@ -43,6 +50,13 @@ input {padding:12px;width:95%;margin-bottom:15px}
 </section>
 <section>
 <h2>Service Disruptions</h2>
+<p class="alert">
+    Route 103: Temporary stop closure near Hospital.
+</p>
+
+<p class="alert">
+    Route 104: Bus diverted due to road maintenance.
+</p>
 <p class="alert">Route 102: Delay due to traffic.</p>
 <p>Route 105: Temporary congestion near Market.</p>
 </section>
@@ -52,5 +66,23 @@ input {padding:12px;width:95%;margin-bottom:15px}
 <p>Check service status before travelling.</p>
 </section>
 </main>
+<script>
+function filterRoutes() {
+    const search = document.getElementById("routeSearch")
+        .value.toLowerCase();
+
+    const rows = document.querySelectorAll(
+        "#busTable tbody tr"
+    );
+
+    rows.forEach(row => {
+        const route = row.cells[0].textContent.toLowerCase();
+
+        row.style.display = route.includes(search)
+            ? ""
+            : "none";
+    });
+}
+</script>
 </body>
 </html>
