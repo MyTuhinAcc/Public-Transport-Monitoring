@@ -1,0 +1,56 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Public Transport Monitoring Dashboard</title>
+<style>
+body {font-family:Arial;margin:0;background:#f2f5fa;color:#182b44}
+header {background:#173b78;color:white;padding:25px;text-align:center}
+main {max-width:1000px;margin:25px auto;padding:15px}
+table {width:100%;border-collapse:collapse;background:white}
+th,td {padding:14px;border:1px solid #ddd;text-align:left}
+th {background:#dbe8fa}
+section {background:white;padding:20px;margin:20px 0;border-radius:8px}
+input {padding:12px;width:95%;margin-bottom:15px}
+.alert {color:#a32a21;font-weight:bold}
+</style>
+</head>
+<body>
+<header>
+<h1>Public Transport Monitoring Dashboard</h1>
+<p>Live-style simulated city transport information</p>
+</header>
+<main>
+<section>
+<h2>Bus Route Information</h2>
+<table id="busTable">
+<thead>
+<tr>
+<th>Route</th><th>Source</th><th>Destination</th>
+<th>ETA</th><th>Crowd</th><th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr><td>101</td><td>Central</td><td>Airport</td><td>8 min</td><td>Low</td><td>On Time</td></tr>
+<tr><td>102</td><td>Station</td><td>University</td><td>12 min</td><td>High</td><td>Delayed</td></tr>
+<tr><td>103</td><td>Market</td><td>Hospital</td><td>5 min</td><td>Moderate</td><td>On Time</td></tr>
+<tr><td>104</td><td>Airport</td><td>Central</td><td>18 min</td><td>Low</td><td>On Time</td></tr>
+<tr><td>105</td><td>University</td><td>Market</td><td>15 min</td><td>High</td><td>Delayed</td></tr>
+</tbody>
+</table>
+</section>
+<section>
+<h2>Service Disruptions</h2>
+<p class="alert">Route 102: Delay due to traffic.</p>
+<p>Route 105: Temporary congestion near Market.</p>
+</section>
+<section>
+<h2>Passenger Advisories</h2>
+<p>Please arrive at the bus stop 5 minutes early.</p>
+<p>Check service status before travelling.</p>
+</section>
+</main>
+</body>
+</html>
