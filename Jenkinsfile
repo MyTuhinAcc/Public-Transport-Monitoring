@@ -73,31 +73,49 @@ pipeline {
             }
         }
 
-        stage('Test Application') {
-            steps {
-                bat '''
-                    docker rm -f %TEST_CONTAINER% 2>NUL
+        
+stage('Test Application') {
+    steps {
+        bat '''
+            docker rm -f %TEST_CONTAINER% 2>NUL
 
-                    docker run -d --name %TEST_CONTAINER% -p %TEST_PORT%:80 %DOCKER_IMAGE%:%BUILD_NUMBER%
-                    if errorlevel 1 exit /b 1
+            docker run -d --name %TEST_CONTAINER% -p %TEST_PORT%:80 %DOCKER_IMAGE%:%BUILD_NUMBER%
+            if errorlevel 1 exit /b 1
 
-                    curl.exe -fsS --retry 10 --retry-delay 2 --retry-connrefused http://127.0.0.1:%TEST_PORT%/ -o test-page.html
-                    if errorlevel 1 exit /b 1
+            REM Allow Nginx time to initialize
+            powershell -NoProfile -Command "Start-Sleep -Seconds 10"
 
-                    findstr /I /C:"%EXPECTED_TEXT%" test-page.html
-                    if errorlevel 1 exit /b 1
-                '''
+            REM Retry HTTP requests until application responds
+            curl.exe -fsS --retry 10 --retry-all-errors --retry-delay 3 http://127.0.0.1:%TEST_PORT%/ -o test-page.html
 
-                archiveArtifacts artifacts: 'test-page.html',
-                                 fingerprint: true
-            }
+            if errorlevel 1 (
+                echo APPLICATION TEST FAILED
+                docker logs %TEST_CONTAINER%
+                exit /b 1
+            )
 
-            post {
-                always {
-                    bat 'docker rm -f %TEST_CONTAINER% 2>NUL || exit /b 0'
-                }
-            }
+            REM Verify the expected webpage content
+            findstr /I /C:"%EXPECTED_TEXT%" test-page.html
+
+            if errorlevel 1 (
+                echo HTML CONTENT VALIDATION FAILED
+                type test-page.html
+                exit /b 1
+            )
+
+            echo APPLICATION TEST SUCCESSFUL
+        '''
+
+        archiveArtifacts artifacts: 'test-page.html',
+                         fingerprint: true
+    }
+
+    post {
+        always {
+            bat 'docker rm -f %TEST_CONTAINER% 2>NUL || exit /b 0'
         }
+    }
+}
 
         stage('Push Image') {
             steps {
